@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Making Intonation Visible</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --panel: #111827;
+    --border: #1e293b;
+    --model-color: #38bdf8;
+    --learner-color: #f472b6;
+    --accent: #818cf8;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --success: #34d399;
+    --warn: #fbbf24;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(56,189,248,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(56,189,248,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+    position: relative;
+    z-index: 1;
+  }
+  header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+    animation: fadeDown 0.8s ease both;
+  }
+  .logo-line {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--model-color);
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+  }
+  h1 {
+    font-family: 'Space Mono', monospace;
+    font-size: clamp(1.4rem, 4vw, 2.2rem);
+    font-weight: 700;
+    line-height: 1.2;
+    background: linear-gradient(135deg, var(--model-color), var(--accent), var(--learner-color));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 0.5rem;
+  }
+  .subtitle { color: var(--muted); font-size: 0.9rem; font-weight: 300; }
+
+  .steps {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    animation: fadeUp 0.8s 0.2s ease both;
+  }
+  @media (max-width: 600px) { .steps { grid-template-columns: 1fr; } }
+
+  .step-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    transition: border-color 0.3s;
+  }
+  .step-card:hover { border-color: var(--accent); }
+  .step-num {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--muted);
+    letter-spacing: 0.2em;
+    margin-bottom: 0.75rem;
+  }
+  .step-title {
+    font-size: 0.95rem;
+    font-weight: 500;
+    margin-bottom: 1rem;
+    color: var(--text);
+  }
+  .color-dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0.6rem 1.1rem;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .btn-model { background: rgba(56,189,248,0.12); color: var(--model-color); border: 1px solid rgba(56,189,248,0.3); }
+  .btn-model:hover { background: rgba(56,189,248,0.22); }
+  .btn-record { background: rgba(244,114,182,0.12); color: var(--learner-color); border: 1px solid rgba(244,114,182,0.3); }
+  .btn-record:hover { background: rgba(244,114,182,0.22); }
+  .btn-record.recording { background: rgba(244,114,182,0.3); animation: pulse 1s infinite; }
+  .btn-analyze {
+    background: linear-gradient(135deg, var(--model-color), var(--accent));
+    color: #0a0e1a;
+    font-weight: 700;
+    width: 100%;
+    justify-content: center;
+    padding: 0.8rem;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+  }
+  .btn-analyze:hover { opacity: 0.9; transform: translateY(-1px); }
+  .btn-analyze:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+  .btn-clear { background: transparent; color: var(--muted); border: 1px solid var(--border); font-size: 0.78rem; padding: 0.4rem 0.8rem; }
+  .btn-clear:hover { color: var(--text); border-color: var(--muted); }
+  .btn-play { background: rgba(129,140,248,0.12); color: var(--accent); border: 1px solid rgba(129,140,248,0.3); font-size: 0.78rem; padding: 0.4rem 0.8rem; }
+  .btn-play:hover { background: rgba(129,140,248,0.22); }
+
+  input[type="file"] { display: none; }
+  .file-status { font-size: 0.78rem; color: var(--muted); margin-top: 0.5rem; font-family: 'Space Mono', monospace; }
+  .file-status.ready { color: var(--success); }
+  .file-status.error { color: #f87171; }
+  .rec-status { font-size: 0.78rem; color: var(--muted); margin-top: 0.5rem; font-family: 'Space Mono', monospace; min-height: 1.2em; }
+  .rec-status.active { color: var(--learner-color); }
+  .rec-status.ready { color: var(--success); }
+
+  /* Waveform + Pitch tabs */
+  .chart-panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    animation: fadeUp 0.8s 0.4s ease both;
+  }
+  .chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .chart-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--accent);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+  .legend { display: flex; gap: 1rem; font-size: 0.78rem; color: var(--muted); }
+  .legend-item { display: flex; align-items: center; gap: 5px; }
+  .legend-line { width: 20px; height: 2px; border-radius: 2px; }
+
+  .tab-row { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; }
+  .tab-btn {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    padding: 0.3rem 0.8rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .tab-btn.active { background: rgba(129,140,248,0.15); color: var(--accent); border-color: rgba(129,140,248,0.4); }
+
+  canvas {
+    width: 100%;
+    height: 200px;
+    display: block;
+    border-radius: 6px;
+    background: #080c18;
+  }
+
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    animation: fadeUp 0.8s 0.5s ease both;
+  }
+  @media (max-width: 500px) { .info-grid { grid-template-columns: 1fr 1fr; } }
+  .info-card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; text-align: center; }
+  .info-label { font-size: 0.68rem; color: var(--muted); font-family: 'Space Mono', monospace; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 0.4rem; }
+  .info-value { font-size: 1.1rem; font-weight: 500; font-family: 'Space Mono', monospace; }
+
+  .tone-panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    animation: fadeUp 0.8s 0.6s ease both;
+  }
+  .tone-title { font-family: 'Space Mono', monospace; font-size: 0.75rem; color: var(--accent); letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 1rem; }
+  .pattern-detected {
+    display: flex; align-items: center; gap: 0.75rem;
+    padding: 0.75rem 1rem; border-radius: 8px;
+    background: rgba(129,140,248,0.08);
+    border: 1px solid rgba(129,140,248,0.2);
+    margin-bottom: 0.5rem;
+  }
+  .pattern-icon { font-size: 1.4rem; line-height: 1; }
+  .pattern-name { font-weight: 500; font-size: 0.9rem; }
+  .pattern-desc { font-size: 0.78rem; color: var(--muted); margin-top: 0.2rem; }
+  .pattern-badge { margin-left: auto; font-family: 'Space Mono', monospace; font-size: 0.7rem; padding: 0.2rem 0.6rem; border-radius: 4px; background: rgba(129,140,248,0.15); color: var(--accent); }
+  .placeholder-msg { text-align: center; color: var(--muted); font-size: 0.85rem; padding: 1rem 0; }
+
+  .tip-box {
+    border-radius: 10px;
+    padding: 1rem 1.2rem;
+    font-size: 0.82rem;
+    margin-bottom: 1rem;
+    animation: fadeUp 0.8s 0.7s ease both;
+    display: none;
+  }
+  .tip-box.good { background: rgba(52,211,153,0.06); border: 1px solid rgba(52,211,153,0.2); color: var(--success); }
+  .tip-box.mid  { background: rgba(251,191,36,0.06);  border: 1px solid rgba(251,191,36,0.2);  color: var(--warn); }
+  .tip-box.low  { background: rgba(244,114,182,0.06); border: 1px solid rgba(244,114,182,0.2); color: var(--learner-color); }
+
+  /* debug info */
+  .debug-box {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+    margin-bottom: 1rem;
+    display: none;
+  }
+
+  @keyframes fadeDown { from { opacity:0; transform:translateY(-20px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes fadeUp   { from { opacity:0; transform:translateY(20px);  } to { opacity:1; transform:translateY(0); } }
+  @keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(244,114,182,0.3);} 50%{box-shadow:0 0 0 6px rgba(244,114,182,0);} }
+
+  .row-btns { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+
+  /* Mode switcher */
+  .mode-switcher {
+    display: flex;
+    gap: 0.5rem;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.35rem;
+    margin-bottom: 1.25rem;
+    animation: fadeUp 0.8s 0.1s ease both;
+  }
+  .mode-btn {
+    flex: 1;
+    padding: 0.55rem 1rem;
+    border-radius: 7px;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+  }
+  .mode-btn.active {
+    background: rgba(129,140,248,0.18);
+    color: var(--accent);
+    border: 1px solid rgba(129,140,248,0.35);
+  }
+
+  /* Free mode panel */
+  .free-panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    animation: fadeUp 0.5s ease both;
+    display: none;
+  }
+  .free-panel.visible { display: block; }
+  .free-instruction {
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-bottom: 1.25rem;
+    line-height: 1.6;
+  }
+  .free-instruction strong { color: var(--text); }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="logo-line">⬡ Phonetics Lab</div>
+    <h1>Making Intonation Visible</h1>
+    <p class="subtitle">Compare pitch curves · Analyze patterns · Improve your pronunciation</p>
+  </header>
+
+  <!-- Mode switcher -->
+  <div class="mode-switcher">
+    <button class="mode-btn active" id="modeCompare">⇄ COMPARE MODE</button>
+    <button class="mode-btn" id="modeFree">◉ FREE ANALYSIS</button>
+  </div>
+
+  <!-- Free mode panel -->
+  <div class="free-panel" id="freePanel">
+    <div class="tone-title">◉ Free Pitch Analysis</div>
+    <p class="free-instruction">
+      Just <strong>record yourself</strong> reading any sentence and see your pitch curve instantly.
+      No model audio needed — great for exploring your own intonation patterns.
+    </p>
+    <div class="row-btns" style="margin-bottom:0.75rem">
+      <button class="btn btn-record" id="freeRecordBtn">🎙 Start recording</button>
+      <button class="btn btn-play" id="freePlayBtn" style="display:none">▶ Play</button>
+      <button class="btn btn-clear" id="freeClearBtn" style="display:none">✕ Clear</button>
+    </div>
+    <div class="rec-status" id="freeRecStatus">Ready to record</div>
+    <div style="margin-top:1rem">
+      <button class="btn btn-analyze" id="freeAnalyzeBtn" disabled style="margin-bottom:0">⚡ Show My Pitch Curve</button>
+    </div>
+  </div>
+
+  <div class="steps" id="compareSteps">
+    <div class="step-card">
+      <div class="step-num">STEP 01 —</div>
+      <div class="step-title"><span class="color-dot" style="background:var(--model-color)"></span>Load Model Audio</div>
+      <div class="row-btns">
+        <label>
+          <span class="btn btn-model">📂 Choose file</span>
+          <input type="file" id="modelFile" accept="audio/*">
+        </label>
+        <button class="btn btn-play" id="playModel" style="display:none">▶ Play</button>
+      </div>
+      <div class="file-status" id="modelStatus">No file selected</div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">STEP 02 —</div>
+      <div class="step-title"><span class="color-dot" style="background:var(--learner-color)"></span>Record Your Voice</div>
+      <div class="row-btns">
+        <button class="btn btn-record" id="recordBtn">🎙 Start recording</button>
+        <button class="btn btn-play" id="playLearner" style="display:none">▶ Play</button>
+        <button class="btn btn-clear" id="clearRec" style="display:none">✕</button>
+      </div>
+      <div class="rec-status" id="recStatus">Ready to record</div>
+    </div>
+  </div>
+
+  <button class="btn btn-analyze" id="analyzeBtn" disabled style="display:block">⚡ Analyze &amp; Compare Pitch Curves</button>
+
+  <div class="tip-box" id="tipBox"></div>
+  <div class="debug-box" id="debugBox"></div>
+
+  <div class="chart-panel">
+    <div class="chart-header">
+      <span class="chart-title" id="chartLabel">Pitch Contour (F0)</span>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-line" style="background:var(--model-color)"></div><span>Model</span></div>
+        <div class="legend-item"><div class="legend-line" style="background:var(--learner-color)"></div><span>Your voice</span></div>
+      </div>
+    </div>
+    <div class="tab-row">
+      <button class="tab-btn active" data-tab="pitch">PITCH (F0)</button>
+      <button class="tab-btn" data-tab="wave">WAVEFORM</button>
+    </div>
+    <canvas id="mainCanvas"></canvas>
+  </div>
+
+  <div class="info-grid">
+    <div class="info-card">
+      <div class="info-label">Model Avg F0</div>
+      <div class="info-value" id="statModelF0" style="color:var(--model-color)">— Hz</div>
+    </div>
+    <div class="info-card">
+      <div class="info-label">Your Avg F0</div>
+      <div class="info-value" id="statLearnerF0" style="color:var(--learner-color)">— Hz</div>
+    </div>
+    <div class="info-card">
+      <div class="info-label">Similarity</div>
+      <div class="info-value" id="statSim" style="color:var(--accent)">—</div>
+    </div>
+  </div>
+
+  <div class="tone-panel">
+    <div class="tone-title">🔍 Detected Intonation Patterns</div>
+    <div id="patternContainer"><div class="placeholder-msg">Analyze audio to detect tone patterns</div></div>
+  </div>
+
+</div>
+
+<script>
+// ── Audio context ─────────────────────────────────────────────────
+let audioCtx;
+function getCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+// ── State ─────────────────────────────────────────────────────────
+let modelBuffer = null, learnerBuffer = null;
+let modelUrl = null, learnerUrl = null;
+let mediaRecorder = null, recordedChunks = [], isRecording = false;
+let lastModelPitch = [], lastLearnerPitch = [];
+let currentTab = 'pitch';
+
+// ── DOM ───────────────────────────────────────────────────────────
+const modelFile    = document.getElementById('modelFile');
+const modelStatus  = document.getElementById('modelStatus');
+const recordBtn    = document.getElementById('recordBtn');
+const clearRec     = document.getElementById('clearRec');
+const recStatus    = document.getElementById('recStatus');
+const analyzeBtn   = document.getElementById('analyzeBtn');
+const tipBox       = document.getElementById('tipBox');
+const debugBox     = document.getElementById('debugBox');
+const canvas       = document.getElementById('mainCanvas');
+const ctx2d        = canvas.getContext('2d');
+const playModel    = document.getElementById('playModel');
+const playLearner  = document.getElementById('playLearner');
+
+// ── Tabs ──────────────────────────────────────────────────────────
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentTab = btn.dataset.tab;
+    if (lastModelPitch.length && lastLearnerPitch.length) {
+      if (currentTab === 'pitch') drawPitch(lastModelPitch, lastLearnerPitch);
+      else drawWaveforms(modelBuffer, learnerBuffer);
+    }
+  });
+});
+
+// ── Load model ────────────────────────────────────────────────────
+modelFile.addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  modelStatus.textContent = '⏳ Loading...';
+  modelStatus.className = 'file-status';
+  try {
+    const ab = await file.arrayBuffer();
+    modelBuffer = await getCtx().decodeAudioData(ab.slice(0));
+    modelUrl = URL.createObjectURL(file);
+    modelStatus.textContent = `✓ ${file.name} (${modelBuffer.duration.toFixed(2)}s)`;
+    modelStatus.className = 'file-status ready';
+    playModel.style.display = 'inline-flex';
+    checkReady();
+  } catch(err) {
+    modelStatus.textContent = `✗ Error: ${err.message}`;
+    modelStatus.className = 'file-status error';
+  }
+});
+
+// ── Play buttons ──────────────────────────────────────────────────
+playModel.addEventListener('click', () => { if (modelUrl) new Audio(modelUrl).play(); });
+playLearner.addEventListener('click', () => { if (learnerUrl) new Audio(learnerUrl).play(); });
+
+// ── Recording ─────────────────────────────────────────────────────
+recordBtn.addEventListener('click', async () => {
+  if (isRecording) { mediaRecorder.stop(); return; }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    recordedChunks = [];
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+      ? 'audio/webm;codecs=opus' : 'audio/webm';
+    mediaRecorder = new MediaRecorder(stream, { mimeType });
+    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
+    mediaRecorder.onstop = async () => {
+      stream.getTracks().forEach(t => t.stop());
+      const blob = new Blob(recordedChunks, { type: mimeType });
+      learnerUrl = URL.createObjectURL(blob);
+      try {
+        const ab = await blob.arrayBuffer();
+        learnerBuffer = await getCtx().decodeAudioData(ab);
+        recStatus.textContent = `✓ Recorded (${learnerBuffer.duration.toFixed(2)}s)`;
+        recStatus.className = 'rec-status ready';
+        playLearner.style.display = 'inline-flex';
+      } catch(err) {
+        recStatus.textContent = `✗ Decode error: ${err.message}`;
+      }
+      recordBtn.textContent = '🎙 Record again';
+      recordBtn.className = 'btn btn-record';
+      clearRec.style.display = 'inline-flex';
+      isRecording = false;
+      checkReady();
+    };
+    mediaRecorder.start(100); // collect every 100ms
+    isRecording = true;
+    recordBtn.textContent = '⏹ Stop';
+    recordBtn.className = 'btn btn-record recording';
+    recStatus.textContent = '● Recording...';
+    recStatus.className = 'rec-status active';
+  } catch(err) {
+    recStatus.textContent = `✗ ${err.name === 'NotAllowedError' ? 'Microphone access denied — check browser permissions' : err.message}`;
+  }
+});
+
+clearRec.addEventListener('click', () => {
+  learnerBuffer = null; learnerUrl = null; recordedChunks = [];
+  recStatus.textContent = 'Ready to record';
+  recStatus.className = 'rec-status';
+  recordBtn.textContent = '🎙 Start recording';
+  playLearner.style.display = 'none';
+  clearRec.style.display = 'none';
+  checkReady(); resetUI();
+});
+
+function checkReady() { analyzeBtn.disabled = !(modelBuffer && learnerBuffer); }
+
+// ── Pitch extraction — YIN-inspired ──────────────────────────────
+// Uses a fixed frame size of 2048 samples (~46ms at 44100Hz)
+// Much more robust for short audio clips
+function extractPitch(audioBuffer, targetPoints = 150) {
+  const data = audioBuffer.getChannelData(0);
+  const sr   = audioBuffer.sampleRate;
+
+  const FRAME  = 2048;   // fixed frame size
+  const HOP    = Math.max(1, Math.floor((data.length - FRAME) / targetPoints));
+  const pitches = [];
+
+  let i = 0;
+  while (i + FRAME <= data.length) {
+    const frame = data.slice(i, i + FRAME);
+    pitches.push(getPitch(frame, sr));
+    i += HOP;
+    if (pitches.length >= targetPoints) break;
+  }
+
+  // If audio shorter than one frame, still try with what we have
+  if (pitches.length === 0 && data.length > 512) {
+    pitches.push(getPitch(data.slice(0, Math.min(data.length, FRAME)), sr));
+  }
+
+  return medianSmooth(pitches, 3);
+}
+
+function getPitch(frame, sr) {
+  const N = frame.length;
+
+  // RMS gate — silence threshold
+  let sum = 0;
+  for (let i = 0; i < N; i++) sum += frame[i] * frame[i];
+  const rms = Math.sqrt(sum / N);
+  if (rms < 0.003) return 0;
+
+  // Normalized squared difference (NSDF) — similar to YIN
+  const minLag = Math.floor(sr / 600); // max 600 Hz
+  const maxLag = Math.floor(sr / 60);  // min 60 Hz
+
+  let bestLag = -1, bestVal = -Infinity;
+
+  for (let lag = minLag; lag <= Math.min(maxLag, N - 1); lag++) {
+    let num = 0, d1 = 0, d2 = 0;
+    const len = N - lag;
+    for (let j = 0; j < len; j++) {
+      num += frame[j] * frame[j + lag];
+      d1  += frame[j] * frame[j];
+      d2  += frame[j + lag] * frame[j + lag];
+    }
+    const denom = 0.5 * (d1 + d2);
+    const nsdf  = denom > 0 ? num / denom : 0;
+    if (nsdf > bestVal) { bestVal = nsdf; bestLag = lag; }
+  }
+
+  if (bestLag < 1 || bestVal < 0.3) return 0;
+
+  const f0 = sr / bestLag;
+  return (f0 >= 60 && f0 <= 600) ? f0 : 0;
+}
+
+function medianSmooth(arr, w) {
+  return arr.map((_, i) => {
+    const s = Math.max(0, i - w), e = Math.min(arr.length - 1, i + w);
+    const sl = arr.slice(s, e + 1).filter(v => v > 0).sort((a,b)=>a-b);
+    return sl.length ? sl[Math.floor(sl.length / 2)] : 0;
+  });
+}
+
+// ── Waveform drawing ──────────────────────────────────────────────
+function drawWaveforms(bufA, bufB) {
+  if (!bufA || !bufB) return;
+  resize();
+  const W = canvas.width / devicePixelRatio;
+  const H = canvas.height / devicePixelRatio;
+  ctx2d.clearRect(0, 0, W, H);
+  drawGrid(W, H);
+
+  const half = H / 2;
+
+  const drawWave = (buf, color, yOffset) => {
+    const data = buf.getChannelData(0);
+    const step = Math.ceil(data.length / W);
+    ctx2d.beginPath();
+    ctx2d.strokeStyle = color;
+    ctx2d.lineWidth = 1.5;
+    for (let x = 0; x < W; x++) {
+      const idx = x * step;
+      const val = data[Math.min(idx, data.length-1)];
+      const y   = yOffset + val * (half * 0.85);
+      x === 0 ? ctx2d.moveTo(x, y) : ctx2d.lineTo(x, y);
+    }
+    ctx2d.stroke();
+  };
+
+  // Divider
+  ctx2d.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx2d.lineWidth = 1;
+  ctx2d.beginPath(); ctx2d.moveTo(0, half); ctx2d.lineTo(W, half); ctx2d.stroke();
+
+  // Labels
+  ctx2d.fillStyle = 'rgba(56,189,248,0.5)';
+  ctx2d.font = '11px Space Mono';
+  ctx2d.fillText('MODEL', 6, half * 0.15);
+  ctx2d.fillStyle = 'rgba(244,114,182,0.5)';
+  ctx2d.fillText('YOUR VOICE', 6, half + half * 0.15);
+
+  drawWave(bufA, '#38bdf8', half * 0.5);
+  drawWave(bufB, '#f472b6', half + half * 0.5);
+}
+
+// ── Pitch chart drawing ───────────────────────────────────────────
+function drawPitch(mPitch, lPitch) {
+  resize();
+  const W = canvas.width / devicePixelRatio;
+  const H = canvas.height / devicePixelRatio;
+  ctx2d.clearRect(0, 0, W, H);
+  drawGrid(W, H);
+
+  const allVals = [...mPitch, ...lPitch].filter(v => v > 0);
+  if (!allVals.length) {
+    ctx2d.fillStyle = 'rgba(100,116,139,0.6)';
+    ctx2d.font = '13px DM Sans';
+    ctx2d.textAlign = 'center';
+    ctx2d.fillText('No voiced frames detected — try a longer audio clip', W/2, H/2);
+    ctx2d.textAlign = 'left';
+    return;
+  }
+
+  const minP = Math.max(50,  Math.min(...allVals) - 15);
+  const maxP = Math.min(650, Math.max(...allVals) + 15);
+  const PAD  = { top: 14, bot: 14 };
+
+  const toY = p => p > 0
+    ? H - PAD.bot - ((p - minP) / (maxP - minP)) * (H - PAD.top - PAD.bot)
+    : null;
+  const toX = (i, len) => len > 1 ? (i / (len - 1)) * W : W / 2;
+
+  // Hz reference lines
+  ctx2d.strokeStyle = 'rgba(255,255,255,0.05)';
+  ctx2d.lineWidth = 1;
+  ctx2d.setLineDash([4,4]);
+  const hzSteps = 5;
+  for (let k = 0; k <= hzSteps; k++) {
+    const hz = minP + (maxP - minP) * (k / hzSteps);
+    const y  = toY(hz);
+    ctx2d.beginPath(); ctx2d.moveTo(0, y); ctx2d.lineTo(W, y); ctx2d.stroke();
+    ctx2d.fillStyle = 'rgba(100,116,139,0.7)';
+    ctx2d.font = '10px Space Mono';
+    ctx2d.fillText(`${Math.round(hz)}Hz`, 3, y - 2);
+  }
+  ctx2d.setLineDash([]);
+
+  const drawCurve = (pitches, color, dashed) => {
+    if (dashed) ctx2d.setLineDash([7, 5]);
+    ctx2d.beginPath();
+    ctx2d.strokeStyle = color;
+    ctx2d.lineWidth = 2.5;
+    ctx2d.lineJoin = 'round';
+    ctx2d.lineCap  = 'round';
+    let started = false;
+    pitches.forEach((p, i) => {
+      const x = toX(i, pitches.length);
+      const y = toY(p);
+      if (y === null) { started = false; return; }
+      if (!started) { ctx2d.moveTo(x, y); started = true; }
+      else ctx2d.lineTo(x, y);
+    });
+    ctx2d.stroke();
+    // glow pass
+    ctx2d.shadowBlur = 10; ctx2d.shadowColor = color;
+    ctx2d.stroke();
+    ctx2d.shadowBlur = 0;
+    ctx2d.setLineDash([]);
+  };
+
+  drawCurve(mPitch, '#38bdf8', false);
+  drawCurve(lPitch, '#f472b6', true);
+}
+
+function resize() {
+  const W = canvas.offsetWidth;
+  const H = canvas.offsetHeight;
+  canvas.width  = W * devicePixelRatio;
+  canvas.height = H * devicePixelRatio;
+  ctx2d.scale(devicePixelRatio, devicePixelRatio);
+}
+
+function drawGrid(W, H) {
+  ctx2d.strokeStyle = 'rgba(255,255,255,0.03)';
+  ctx2d.lineWidth = 1;
+  for (let i = 1; i < 5; i++) {
+    const y = (H / 5) * i;
+    ctx2d.beginPath(); ctx2d.moveTo(0, y); ctx2d.lineTo(W, y); ctx2d.stroke();
+  }
+}
+
+// ── Pattern detection ─────────────────────────────────────────────
+function detectPattern(pitches) {
+  const valid = pitches.filter(p => p > 0);
+  if (valid.length < 4) return null;
+
+  const chunk = n => valid.slice(
+    Math.floor(valid.length * n[0]),
+    Math.floor(valid.length * n[1])
+  );
+  const avg = arr => arr.length ? arr.reduce((a,b)=>a+b)/arr.length : 0;
+
+  const fAvg = avg(chunk([0, 0.33]));
+  const mAvg = avg(chunk([0.33, 0.66]));
+  const lAvg = avg(chunk([0.66, 1]));
+  const diff  = lAvg - fAvg;
+
+  if (Math.abs(diff) < 6)  return { name:'Level Tone',  icon:'➡️',    desc:'Pitch stays relatively stable — often used in listing or continuation', tag:'LEVEL' };
+  if (diff < -12) {
+    if (lAvg > mAvg + 8)   return { name:'Fall-Rise',   icon:'📉📈',  desc:'Pitch falls then rises — implies contrast, reservation or implication', tag:'FALL-RISE' };
+    return                         { name:'Fall',        icon:'📉',    desc:'Pitch falls — typical of statements, commands, wh-questions', tag:'FALL' };
+  }
+  if (diff > 12) {
+    if (lAvg < mAvg - 8)   return { name:'Rise-Fall',   icon:'📈📉',  desc:'Pitch rises then falls — implies strong assertion or sarcasm', tag:'RISE-FALL' };
+    return                         { name:'Rise',        icon:'📈',    desc:'Pitch rises — typical of yes/no questions or non-final items', tag:'RISE' };
+  }
+  return { name:'Mixed Contour', icon:'〰️', desc:'Complex pitch movement detected', tag:'COMPLEX' };
+}
+
+// ── Similarity ────────────────────────────────────────────────────
+function similarity(a, b) {
+  const va = a.filter(v=>v>0), vb = b.filter(v=>v>0);
+  if (!va.length || !vb.length) return 0;
+  const avgA = va.reduce((x,y)=>x+y)/va.length;
+  const avgB = vb.reduce((x,y)=>x+y)/vb.length;
+  return Math.round(Math.max(0, 100 - Math.abs(avgA-avgB) * 1.1));
+}
+
+// ── Analyze ───────────────────────────────────────────────────────
+analyzeBtn.addEventListener('click', () => {
+  const mPitch = extractPitch(modelBuffer);
+  const lPitch = extractPitch(learnerBuffer);
+  lastModelPitch = mPitch; lastLearnerPitch = lPitch;
+
+  // Debug info
+  const mVoiced = mPitch.filter(v=>v>0).length;
+  const lVoiced = lPitch.filter(v=>v>0).length;
+  debugBox.style.display = 'block';
+  debugBox.textContent =
+    `model: ${modelBuffer.duration.toFixed(2)}s · ${mPitch.length} frames · ${mVoiced} voiced` +
+    `   |   learner: ${learnerBuffer.duration.toFixed(2)}s · ${lPitch.length} frames · ${lVoiced} voiced`;
+
+  if (currentTab === 'pitch') drawPitch(mPitch, lPitch);
+  else drawWaveforms(modelBuffer, learnerBuffer);
+
+  // Stats
+  const avgV = arr => { const v=arr.filter(x=>x>0); return v.length ? Math.round(v.reduce((a,b)=>a+b)/v.length) : 0; };
+  document.getElementById('statModelF0').textContent  = `${avgV(mPitch)} Hz`;
+  document.getElementById('statLearnerF0').textContent = `${avgV(lPitch)} Hz`;
+  const sim = similarity(mPitch, lPitch);
+  document.getElementById('statSim').textContent = `${sim}%`;
+
+  // Patterns
+  const mPat = detectPattern(mPitch), lPat = detectPattern(lPitch);
+  const cont = document.getElementById('patternContainer');
+  cont.innerHTML = '';
+  const render = (pat, label, color) => {
+    if (!pat) return;
+    const d = document.createElement('div');
+    d.className = 'pattern-detected';
+    d.innerHTML = `<span class="pattern-icon">${pat.icon}</span>
+      <div><div class="pattern-name" style="color:${color}">${label}: ${pat.name}</div>
+      <div class="pattern-desc">${pat.desc}</div></div>
+      <span class="pattern-badge">${pat.tag}</span>`;
+    cont.appendChild(d);
+  };
+  render(mPat, 'Model', '#38bdf8');
+  render(lPat, 'Your voice', '#f472b6');
+  if (!mPat && !lPat) cont.innerHTML = '<div class="placeholder-msg">Could not detect pattern — try a louder or longer recording</div>';
+
+  // Tip
+  tipBox.style.display = 'block';
+  tipBox.className = 'tip-box';
+  if (mVoiced < 3) {
+    tipBox.classList.add('mid');
+    tipBox.textContent = '⚠ Model audio has very few voiced frames. Try a WAV with clear speech and minimal silence.';
+  } else if (lVoiced < 3) {
+    tipBox.classList.add('mid');
+    tipBox.textContent = '⚠ Your recording has very few voiced frames. Speak louder and closer to the microphone.';
+  } else if (sim >= 75) {
+    tipBox.classList.add('good');
+    tipBox.textContent = `✓ Great match! Your intonation closely follows the model (${sim}% similarity). Keep it up!`;
+  } else if (sim >= 45) {
+    tipBox.classList.add('mid');
+    tipBox.textContent = `↗ Getting closer! Your curve goes in a similar direction but differs in pitch range. Focus on matching the highs and lows of the model curve.`;
+  } else {
+    tipBox.classList.add('low');
+    tipBox.textContent = `↻ Keep practicing! Your pitch curve differs significantly from the model. Pay attention to where the model rises and falls, and try to mirror that shape.`;
+  }
+});
+
+// ── Mode switching ────────────────────────────────────────────────
+let currentMode = 'compare';
+const modeCompareBtn = document.getElementById('modeCompare');
+const modeFreeBtn    = document.getElementById('modeFree');
+const compareSteps   = document.getElementById('compareSteps');
+const freePanel      = document.getElementById('freePanel');
+const mainAnalyzeBtn = document.getElementById('analyzeBtn');
+
+modeCompareBtn.addEventListener('click', () => {
+  currentMode = 'compare';
+  modeCompareBtn.classList.add('active');
+  modeFreeBtn.classList.remove('active');
+  compareSteps.style.display = '';
+  mainAnalyzeBtn.style.display = 'block';
+  freePanel.classList.remove('visible');
+  resetUI();
+});
+
+modeFreeBtn.addEventListener('click', () => {
+  currentMode = 'free';
+  modeFreeBtn.classList.add('active');
+  modeCompareBtn.classList.remove('active');
+  compareSteps.style.display = 'none';
+  mainAnalyzeBtn.style.display = 'none';
+  freePanel.classList.add('visible');
+  resetUI();
+});
+
+// ── Free mode recording ───────────────────────────────────────────
+let freeBuffer = null, freeUrl = null;
+let freeRecorder = null, freeChunks = [], freeRecording = false;
+
+const freeRecBtn      = document.getElementById('freeRecordBtn');
+const freePlayBtn     = document.getElementById('freePlayBtn');
+const freeClearBtn    = document.getElementById('freeClearBtn');
+const freeRecStatus   = document.getElementById('freeRecStatus');
+const freeAnalyzeBtn  = document.getElementById('freeAnalyzeBtn');
+
+freeRecBtn.addEventListener('click', async () => {
+  if (freeRecording) { freeRecorder.stop(); return; }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    freeChunks = [];
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+      ? 'audio/webm;codecs=opus' : 'audio/webm';
+    freeRecorder = new MediaRecorder(stream, { mimeType });
+    freeRecorder.ondataavailable = e => { if (e.data.size > 0) freeChunks.push(e.data); };
+    freeRecorder.onstop = async () => {
+      stream.getTracks().forEach(t => t.stop());
+      const blob = new Blob(freeChunks, { type: mimeType });
+      freeUrl = URL.createObjectURL(blob);
+      try {
+        const ab = await blob.arrayBuffer();
+        freeBuffer = await getCtx().decodeAudioData(ab);
+        freeRecStatus.textContent = `✓ Recorded (${freeBuffer.duration.toFixed(2)}s)`;
+        freeRecStatus.className = 'rec-status ready';
+        freePlayBtn.style.display = 'inline-flex';
+        freeAnalyzeBtn.disabled = false;
+      } catch(err) {
+        freeRecStatus.textContent = `✗ Decode error: ${err.message}`;
+      }
+      freeRecBtn.textContent = '🎙 Record again';
+      freeRecBtn.className = 'btn btn-record';
+      freeClearBtn.style.display = 'inline-flex';
+      freeRecording = false;
+    };
+    freeRecorder.start(100);
+    freeRecording = true;
+    freeRecBtn.textContent = '⏹ Stop';
+    freeRecBtn.className = 'btn btn-record recording';
+    freeRecStatus.textContent = '● Recording...';
+    freeRecStatus.className = 'rec-status active';
+  } catch(err) {
+    freeRecStatus.textContent = `✗ ${err.name === 'NotAllowedError' ? 'Microphone access denied' : err.message}`;
+  }
+});
+
+freePlayBtn.addEventListener('click', () => { if (freeUrl) new Audio(freeUrl).play(); });
+
+freeClearBtn.addEventListener('click', () => {
+  freeBuffer = null; freeUrl = null; freeChunks = [];
+  freeRecStatus.textContent = 'Ready to record';
+  freeRecStatus.className = 'rec-status';
+  freeRecBtn.textContent = '🎙 Start recording';
+  freePlayBtn.style.display = 'none';
+  freeClearBtn.style.display = 'none';
+  freeAnalyzeBtn.disabled = true;
+  resetUI();
+});
+
+// ── Free mode analyze ─────────────────────────────────────────────
+freeAnalyzeBtn.addEventListener('click', () => {
+  if (!freeBuffer) return;
+  const pitch = extractPitch(freeBuffer);
+  lastModelPitch = pitch;
+  lastLearnerPitch = [];
+
+  // Draw only one curve (model color = learner color in free mode)
+  resize();
+  const W = canvas.width / devicePixelRatio;
+  const H = canvas.height / devicePixelRatio;
+  ctx2d.clearRect(0, 0, W, H);
+  drawGrid(W, H);
+
+  const allVals = pitch.filter(v => v > 0);
+
+  if (!allVals.length) {
+    ctx2d.fillStyle = 'rgba(100,116,139,0.6)';
+    ctx2d.font = '13px DM Sans';
+    ctx2d.textAlign = 'center';
+    ctx2d.fillText('No voiced frames detected — try speaking louder or longer', W/2, H/2);
+    ctx2d.textAlign = 'left';
+    return;
+  }
+
+  const minP = Math.max(50,  Math.min(...allVals) - 15);
+  const maxP = Math.min(650, Math.max(...allVals) + 15);
+  const PAD  = { top: 14, bot: 14 };
+  const toY  = p => p > 0 ? H - PAD.bot - ((p - minP) / (maxP - minP)) * (H - PAD.top - PAD.bot) : null;
+  const toX  = (i, len) => len > 1 ? (i / (len - 1)) * W : W / 2;
+
+  // Hz reference lines
+  ctx2d.strokeStyle = 'rgba(255,255,255,0.05)';
+  ctx2d.lineWidth = 1;
+  ctx2d.setLineDash([4,4]);
+  for (let k = 0; k <= 5; k++) {
+    const hz = minP + (maxP - minP) * (k / 5);
+    const y  = toY(hz);
+    ctx2d.beginPath(); ctx2d.moveTo(0, y); ctx2d.lineTo(W, y); ctx2d.stroke();
+    ctx2d.fillStyle = 'rgba(100,116,139,0.7)';
+    ctx2d.font = '10px Space Mono';
+    ctx2d.fillText(`${Math.round(hz)}Hz`, 3, y - 2);
+  }
+  ctx2d.setLineDash([]);
+
+  // Single curve in accent color
+  ctx2d.beginPath();
+  ctx2d.strokeStyle = '#818cf8';
+  ctx2d.lineWidth = 2.5;
+  ctx2d.lineJoin = 'round';
+  ctx2d.lineCap  = 'round';
+  let started = false;
+  pitch.forEach((p, i) => {
+    const x = toX(i, pitch.length);
+    const y = toY(p);
+    if (y === null) { started = false; return; }
+    if (!started) { ctx2d.moveTo(x, y); started = true; }
+    else ctx2d.lineTo(x, y);
+  });
+  ctx2d.stroke();
+  ctx2d.shadowBlur = 12; ctx2d.shadowColor = '#818cf8';
+  ctx2d.stroke();
+  ctx2d.shadowBlur = 0;
+
+  // Stats
+  const voiced = allVals.length;
+  const avgHz  = Math.round(allVals.reduce((a,b)=>a+b)/allVals.length);
+  document.getElementById('statModelF0').textContent  = `${avgHz} Hz`;
+  document.getElementById('statLearnerF0').textContent = '—';
+  document.getElementById('statSim').textContent = '—';
+
+  // Pattern
+  const pat = detectPattern(pitch);
+  const cont = document.getElementById('patternContainer');
+  cont.innerHTML = '';
+  if (pat) {
+    const d = document.createElement('div');
+    d.className = 'pattern-detected';
+    d.innerHTML = `<span class="pattern-icon">${pat.icon}</span>
+      <div><div class="pattern-name" style="color:var(--accent)">Your voice: ${pat.name}</div>
+      <div class="pattern-desc">${pat.desc}</div></div>
+      <span class="pattern-badge">${pat.tag}</span>`;
+    cont.appendChild(d);
+  } else {
+    cont.innerHTML = '<div class="placeholder-msg">Could not detect a clear pattern — try a longer sentence</div>';
+  }
+
+  // Debug
+  debugBox.style.display = 'block';
+  debugBox.textContent = `free mode · ${freeBuffer.duration.toFixed(2)}s · ${pitch.length} frames · ${voiced} voiced · avg ${avgHz}Hz`;
+
+  // Tip
+  tipBox.style.display = 'block';
+  tipBox.className = 'tip-box good';
+  tipBox.textContent = pat
+    ? `Your pitch curve shows a ${pat.name} pattern. ${pat.desc}.`
+    : '✓ Pitch curve generated. Try a sentence of at least 3–4 seconds for better pattern detection.';
+});
+
+function resetUI() {
+  ctx2d.clearRect(0, 0, canvas.width, canvas.height);
+  ['statModelF0','statLearnerF0','statSim'].forEach(id => {
+    document.getElementById(id).textContent = id === 'statSim' ? '—' : '— Hz';
+  });
+  document.getElementById('patternContainer').innerHTML = '<div class="placeholder-msg">Analyze audio to detect tone patterns</div>';
+  tipBox.style.display = 'none';
+  debugBox.style.display = 'none';
+  lastModelPitch = []; lastLearnerPitch = [];
+}
+</script>
+</body>
+</html>
